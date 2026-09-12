@@ -34,3 +34,13 @@ def create_workout_session(
 
     return workout_session
 
+@router.get("/",response_model=list[WorkoutSessionOut])
+def list_workout_sessions(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+
+    session = db.query(WorkoutSession).filter(current_user.id == WorkoutSession.user_id).all()
+
+    return session
+
