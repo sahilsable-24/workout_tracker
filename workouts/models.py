@@ -27,7 +27,7 @@ class WorkoutSession(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     workout_date: Mapped[date]
-    muscle_group: Mapped[list["MuscleGroup"]] = relationship(
+    muscle_groups: Mapped[list["MuscleGroup"]] = relationship(
         secondary=workout_sessions_muscle_groups, back_populates="sessions"
     )
 
@@ -36,7 +36,7 @@ class Exercise(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str]
-    created_by_user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True),
+    created_by_user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
 
 class WorkoutExercise(Base):
     __tablename__ = "workout_exercises"
