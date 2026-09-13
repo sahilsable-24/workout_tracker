@@ -34,3 +34,21 @@ class SetOut(BaseModel):
     reps: int
     weight: Decimal
     model_config = ConfigDict(from_attributes=True)
+
+class ExerciseOut(BaseModel):
+    id: int
+    name: str
+    model_config = ConfigDict(from_attributes=True)
+
+class WorkoutExerciseDetailOut(BaseModel):
+    id: int
+    exercise: ExerciseOut
+    sets: list[SetOut]
+    model_config = ConfigDict(from_attributes=True)
+
+class WorkoutSessionDetailOut(BaseModel):
+    id: int
+    workout_date: date
+    muscle_groups: list[MuscleGroupOut]
+    workout_exercises: list[WorkoutExerciseDetailOut]
+    model_config = ConfigDict(from_attributes=True)

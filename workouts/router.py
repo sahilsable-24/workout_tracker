@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException,Depends,status
 from workouts.models import WorkoutSession,MuscleGroup,WorkoutExercise,Exercise,Set
-from workouts.schemas import WorkoutSessionCreate,WorkoutSessionOut,WorkoutExerciseCreate, WorkoutExerciseOut, SetCreate,SetOut
+from workouts.schemas import WorkoutSessionCreate,WorkoutSessionOut,WorkoutExerciseCreate, WorkoutExerciseOut, SetCreate,SetOut,WorkoutExerciseDetailOut,WorkoutSessionDetailOut,ExerciseOut
 from auth.jwt import get_current_user
 from database import get_db
 from auth.models import User
@@ -111,3 +111,21 @@ def add_set_to_exercise(
     db.refresh(new_set)
 
     return new_set
+
+
+# Router to get all the workout details
+@router.get("/{session_id}",response_model=WorkoutSessionDetailOut)
+def get_workout_session_details(
+    session_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    session_detail = db.query(WorkoutSession).filter(
+        WorkoutSession.id == session_id,
+        current_user.id == WorkoutSession.user_id
+    ).first()
+
+    if not session_detail:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    return session_detail

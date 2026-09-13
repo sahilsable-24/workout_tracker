@@ -30,6 +30,7 @@ class WorkoutSession(Base):
     muscle_groups: Mapped[list["MuscleGroup"]] = relationship(
         secondary=workout_sessions_muscle_groups, back_populates="sessions"
     )
+    workout_exercises: Mapped[list["WorkoutExercise"]] = relationship(back_populates="workout_session")
 
 class Exercise(Base):
     __tablename__ = "exercises"
@@ -45,6 +46,10 @@ class WorkoutExercise(Base):
     workout_session_id: Mapped[int] = mapped_column(ForeignKey("workout_sessions.id"))
     exercise_id: Mapped[int] = mapped_column(ForeignKey("exercises.id"))
 
+    exercise: Mapped["Exercise"] = relationship()
+    sets: Mapped[list["Set"]] = relationship(back_populates="workout_exercise")
+    workout_session: Mapped["WorkoutSession"] = relationship(back_populates="workout_exercises")
+
 class Set(Base):
     __tablename__ = "sets"
 
@@ -52,4 +57,5 @@ class Set(Base):
     workout_exercise_id: Mapped[int] = mapped_column(ForeignKey("workout_exercises.id"))
     reps: Mapped[int]
     weight: Mapped[Decimal] = mapped_column(Numeric(5,2))
+    workout_exercise: Mapped["WorkoutExercise"] = relationship(back_populates="sets")
 
