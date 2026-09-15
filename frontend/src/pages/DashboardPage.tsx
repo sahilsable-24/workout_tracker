@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { getProgressSummary } from "../api/progress";
 import { getWorkoutSessions } from "../api/workouts";
 import Header from "../components/Header";
@@ -18,6 +19,13 @@ function DashboardPage() {
     <div className="min-h-screen bg-graphite text-chalk">
       <div className="max-w-3xl mx-auto p-6 sm:p-10">
         <Header />
+
+        <Link
+          to="/log"
+          className="inline-block bg-brass hover:bg-brass/90 transition-colors text-graphite font-medium py-3 px-6 rounded-lg mb-10"
+        >
+          Log workout
+        </Link>
 
         {summaryQuery.isLoading && <p className="text-steel text-sm">Loading...</p>}
 

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException,Depends,status
 from workouts.models import WorkoutSession,MuscleGroup,WorkoutExercise,Exercise,Set
-from workouts.schemas import WorkoutSessionCreate,WorkoutSessionOut,WorkoutExerciseCreate, WorkoutExerciseOut, SetCreate,SetOut,WorkoutExerciseDetailOut,WorkoutSessionDetailOut,ExerciseOut
+from workouts.schemas import WorkoutSessionCreate,WorkoutSessionOut,WorkoutExerciseCreate, WorkoutExerciseOut, SetCreate,SetOut,WorkoutExerciseDetailOut,WorkoutSessionDetailOut,ExerciseOut, MuscleGroupOut
 from auth.jwt import get_current_user
 from database import get_db
 from auth.models import User
@@ -47,6 +47,19 @@ def list_workout_sessions(
     session = db.query(WorkoutSession).filter(current_user.id == WorkoutSession.user_id).all()
 
     return session
+
+
+@router.get("/exercises", response_model=list[ExerciseOut])
+def list_exercises(db: Session = Depends(get_db)):
+    return db.query(Exercise).all()
+
+@router.get("/muscle-groups", response_model=list[MuscleGroupOut])
+def list_muscle_groups(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    return db.query(MuscleGroup).all()
+
 
 
 #Router to post the exercises
