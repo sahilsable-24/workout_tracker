@@ -7,6 +7,7 @@ from workouts.models import WorkoutExercise,WorkoutSession
 from datetime import date, timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+from progress.engine import SuggestionType,suggest_progression
 
 router = APIRouter(prefix="/progress", tags=["progress"])
 
@@ -82,3 +83,36 @@ def get_calendar_progress(
             monthly_counts[str(int(row[0]))] = row[1]
 
         return {"year":year, "monthly_counts": monthly_counts}
+
+
+@router.get("/suggestion/{exercise_id}")
+def get_suggestion(
+    exercise_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+
+    recent_occurences = (
+        db.query(WorkoutExercise)
+        .join(WorkoutSession, WorkoutExercise.workout_session_id == WorkoutSession.id)
+        .filter(
+            WorkoutSession.user_id == current_user.id,
+            WorkoutExercise.exercise_id == exercise_id,
+        )
+        .order_by(WorkoutSession.workout_date.desc())
+        .limit(2)
+        .all()
+    )
+
+    if len(recent_occurences) < 2:
+        return {"exercise_id": exercise_id, "suggestion": SuggestionType.INSUFFICIENT_DATA.value}
+
+    current_sets = [(s.reps,s.weight) for s in recent_occurences[0].sets]
+    previous_sets = [(s.reps,s.weight) for s in recent_occurences[1].sets]
+
+    suggestion = suggest_progression(previous_sets=previous_sets,current_sets=current_sets)
+
+    return {
+        "exercise_id": exercise_id,
+        "suggestion": suggestion.value
+    }
