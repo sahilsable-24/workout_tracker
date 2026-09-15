@@ -3,8 +3,16 @@ from settings import settings
 from auth.router import router as auth_router
 from workouts.router import router as workouts_router
 from progress.router import router as progress_router
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title=settings.app_name)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
 
 @app.get("/health")
 def health():

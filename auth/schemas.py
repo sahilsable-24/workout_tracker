@@ -1,8 +1,8 @@
-from pydantic import EmailStr,BaseModel,ConfigDict
+from pydantic import EmailStr,BaseModel,ConfigDict, Field
 
 class UserCreate(BaseModel):
     email: EmailStr
-    password: str
+    password: str = Field(min_length=8)
 
 class UserOut(BaseModel):
     id:int
