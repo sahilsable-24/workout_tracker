@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from settings import settings
 from auth.router import router as auth_router
 from workouts.router import router as workouts_router
+from progress.router import router as progress_router
 
 app = FastAPI(title=settings.app_name)
 
@@ -11,3 +12,4 @@ def health():
 
 app.include_router(auth_router)
 app.include_router(workouts_router)
+app.include_router(progress_router)
