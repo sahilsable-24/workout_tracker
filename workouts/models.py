@@ -54,7 +54,7 @@ class Set(Base):
     __tablename__ = "sets"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    workout_exercise_id: Mapped[int] = mapped_column(ForeignKey("workout_exercises.id"))
+    workout_exercise_id: Mapped[int] = mapped_column(ForeignKey("workout_exercises.id", ondelete="CASCADE"))
     reps: Mapped[int]
     weight: Mapped[Decimal] = mapped_column(Numeric(5,2))
     workout_exercise: Mapped["WorkoutExercise"] = relationship(back_populates="sets")

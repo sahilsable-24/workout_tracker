@@ -141,6 +141,32 @@ def add_set_to_exercise(
 
     return new_set
 
+#Router to delete a single set
+@router.delete("/workout-exercises/{workout_exercise_id}/sets/{set_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_set(
+    workout_exercise_id: int,
+    set_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    set_obj = (
+        db.query(Set)
+        .join(WorkoutExercise, Set.workout_exercise_id == WorkoutExercise.id)
+        .join(WorkoutSession, WorkoutExercise.workout_session_id == WorkoutSession.id)
+        .filter(
+            Set.id == set_id,
+            Set.workout_exercise_id == workout_exercise_id,
+            WorkoutSession.user_id == current_user.id
+        )
+        .first()
+    )
+
+    if not set_obj:
+        raise HTTPException(status_code=404, detail="Set not found")
+
+    db.delete(set_obj)
+    db.commit()
+
 
 # Router to get all the workout details
 @router.get("/{session_id}",response_model=WorkoutSessionDetailOut)
