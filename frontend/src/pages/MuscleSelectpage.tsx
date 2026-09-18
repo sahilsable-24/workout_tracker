@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { getMuscleGroups, createWorkoutSession } from "../api/workouts";
 import Header from "../components/Header";
 
 function MuscleSelectPage() {
   const navigate = useNavigate();
+  const { date } = useParams();
   const [selectedMuscleGroupIds, setSelectedMuscleGroupIds] = useState<number[]>([]);
 
   const muscleGroupsQuery = useQuery({ queryKey: ["muscle-groups"], queryFn: getMuscleGroups });
@@ -13,7 +14,7 @@ function MuscleSelectPage() {
   const createSessionMutation = useMutation({
     mutationFn: () =>
       createWorkoutSession({
-        workout_date: new Date().toISOString().split("T")[0],
+        workout_date: date!,
         muscle_group_ids: selectedMuscleGroupIds,
       }),
     onSuccess: (data) => navigate(`/log/${data.id}`),
@@ -30,7 +31,9 @@ function MuscleSelectPage() {
       <div className="max-w-3xl mx-auto p-6 sm:p-10">
         <Header />
 
-        <p className="text-xs text-steel mb-3">What are you training today?</p>
+        <p className="text-xs text-steel mb-1">{date}</p>
+        <p className="font-display text-xl font-medium mb-8">What did you train?</p>
+
         <div className="flex flex-wrap gap-2 mb-6">
           {muscleGroupsQuery.data?.map((mg) => (
             <button
@@ -54,6 +57,15 @@ function MuscleSelectPage() {
         >
           {createSessionMutation.isPending ? "Starting..." : "Start workout"}
         </button>
+
+        <div>
+            <button
+                onClick={() => navigate(`/`)}
+                className="mt-8 text-sm text-steel hover:text-brass transition-colors cursor-pointer"  
+                >
+                Back to calendar
+            </button>
+        </div>  
       </div>
     </div>
   );

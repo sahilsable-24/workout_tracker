@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { getCalendarMonth } from "../api/progress";
+import { getProgressSummary } from "../api/progress";
 import Header from "../components/Header";
 
 const MONTH_NAMES = [
@@ -9,6 +10,12 @@ const MONTH_NAMES = [
   "July", "August", "September", "October", "November", "December",
 ];
 const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function formatDate(year: number, month: number, day: number): string {
+  const mm = String(month).padStart(2, "0");
+  const dd = String(day).padStart(2, "0");
+  return `${year}-${mm}-${dd}`;
+}
 
 function CalendarPage() {
   const navigate = useNavigate();
@@ -20,6 +27,7 @@ function CalendarPage() {
   const [year, setYear] = useState(todayYear);
   const [month, setMonth] = useState(todayMonth);
 
+  const summaryQuery = useQuery({ queryKey: ["progress-summary"], queryFn: getProgressSummary });
   const calendarQuery = useQuery({
     queryKey: ["calendar", year, month],
     queryFn: () => getCalendarMonth(year, month),
@@ -32,9 +40,7 @@ function CalendarPage() {
   });
 
   const daysInMonth = new Date(year, month, 0).getDate();
-  const firstWeekday = new Date(year, month - 1, 1).getDay(); // 0 = Sunday
-
-  const isCurrentMonth = year === todayYear && month === todayMonth;
+  const firstWeekday = new Date(year, month - 1, 1).getDay();
 
   function goToPreviousMonth() {
     if (month === 1) {
@@ -54,17 +60,26 @@ function CalendarPage() {
     }
   }
 
+  function isFutureDay(day: number): boolean {
+    const cellDate = new Date(year, month - 1, day);
+    const todayMidnight = new Date(todayYear, todayMonth - 1, todayDate);
+    return cellDate.getTime() > todayMidnight.getTime();
+  }
+
   function handleDayClick(day: number) {
     const session = sessionsByDay.get(day);
 
     if (session) {
-      navigate(`/sessions/${session.id}`);
+      navigate(`/log/${session.id}`);
       return;
     }
 
-    if (isCurrentMonth && day === todayDate) {
-      navigate("/log");
+    if (isFutureDay(day)) {
+      return;
     }
+
+    const dateStr = formatDate(year, month, day);
+    navigate(`/log/new/${dateStr}`);
   }
 
   const cells: (number | null)[] = [
@@ -77,41 +92,51 @@ function CalendarPage() {
       <div className="max-w-3xl mx-auto p-6 sm:p-10">
         <Header />
 
+        {summaryQuery.data && (
+          <div className="flex gap-10 mb-10">
+            <div>
+              <p className="text-xs text-steel mb-1">This week</p>
+              <p className="font-display text-3xl font-medium">
+                {summaryQuery.data.workout_last_7_days}
+              </p>
+              <p className="text-xs text-steel">workouts</p>
+            </div>
+            <div>
+              <p className="text-xs text-steel mb-1">Last 30 days</p>
+              <p className="font-display text-3xl font-medium">
+                {summaryQuery.data.workout_last_30_days}
+              </p>
+              <p className="text-xs text-steel">workouts</p>
+            </div>
+          </div>
+        )}
+
         <div className="flex items-center justify-between mb-6">
-          <button
-            onClick={goToPreviousMonth}
-            className="text-steel hover:text-brass transition-colors text-sm px-2"
-          >
+          <button onClick={goToPreviousMonth} className="text-steel hover:text-brass transition-colors text-sm px-2">
             ←
           </button>
           <p className="font-display text-lg font-medium">
             {MONTH_NAMES[month - 1]} {year}
           </p>
-          <button
-            onClick={goToNextMonth}
-            className="text-steel hover:text-brass transition-colors text-sm px-2"
-          >
+          <button onClick={goToNextMonth} className="text-steel hover:text-brass transition-colors text-sm px-2">
             →
           </button>
         </div>
 
         <div className="grid grid-cols-7 gap-1 mb-2">
           {WEEKDAY_LABELS.map((label) => (
-            <p key={label} className="text-center text-xs text-steel">
-              {label}
-            </p>
+            <p key={label} className="text-center text-xs text-steel">{label}</p>
           ))}
         </div>
 
         <div className="grid grid-cols-7 gap-1">
           {cells.map((day, i) => {
-            if (day === null) {
-              return <div key={`blank-${i}`} />;
-            }
+            if (day === null) return <div key={`blank-${i}`} />;
 
             const hasSession = sessionsByDay.has(day);
-            const isToday = isCurrentMonth && day === todayDate;
-            const isClickable = hasSession || isToday;
+            const isToday = year === todayYear && month === todayMonth && day === todayDate;
+            const future = isFutureDay(day);
+            const isClickable = hasSession || !future;
 
             return (
               <button
@@ -120,10 +145,12 @@ function CalendarPage() {
                 disabled={!isClickable}
                 className={`aspect-square rounded-lg text-sm flex items-center justify-center transition-colors ${
                   hasSession
-                    ? "bg-brass text-graphite font-medium"
+                    ? "bg-brass text-graphite font-medium cursor-pointer"
                     : isToday
                     ? "border border-brass text-brass hover:bg-brass/10 cursor-pointer"
-                    : "text-steel cursor-default"
+                    : future
+                    ? "text-steel/30 cursor-default"
+                    : "text-steel hover:bg-graphite-deep cursor-pointer"
                 }`}
               >
                 {day}

@@ -9,7 +9,7 @@ export function getProgressSummary(): Promise<ProgressSummary> {
   return apiFetch<ProgressSummary>("/progress/summary");
 }
 
-interface CalendarMonthResponse {
+export interface CalendarMonthResponse {
   year: number;
   month: number;
   workout_count: number;

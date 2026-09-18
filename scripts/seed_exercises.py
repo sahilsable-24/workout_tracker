@@ -13,6 +13,7 @@ exercises = [
     "Cable Fly",
     "Push-Up",
     "Chest Dip",
+    "Chest Press",
 
     # Back
     "Deadlift",

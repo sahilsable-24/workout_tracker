@@ -6,40 +6,135 @@ import {
   getWorkoutSession,
   deleteWorkoutSession,
   addExerciseToSession,
+  deleteExerciseFromSession,
   addSetToWorkoutExercise,
+  updateSet,
+  deleteSet,
   type WorkoutExerciseDetail,
+  type SetOut,
 } from "../api/workouts";
 import ExerciseCombobox from "../components/ExerciseCombobox";
 import Header from "../components/Header";
 
-interface SectionProps {
-  workoutExercise: WorkoutExerciseDetail;
-  onSetLogged: () => void;
+interface SetRowProps {
+  workoutExerciseId: number;
+  set: SetOut;
+  index: number;
+  onChanged: () => void;
 }
 
-function ExerciseSection({ workoutExercise, onSetLogged }: SectionProps) {
+function SetRow({ workoutExerciseId, set, index, onChanged }: SetRowProps) {
+  const [editing, setEditing] = useState(false);
+  const [reps, setReps] = useState(String(set.reps));
+  const [weight, setWeight] = useState(set.weight);
+
+  const updateMutation = useMutation({
+    mutationFn: () => updateSet(workoutExerciseId, set.id, Number(reps), Number(weight)),
+    onSuccess: () => {
+      setEditing(false);
+      onChanged();
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteSet(workoutExerciseId, set.id),
+    onSuccess: onChanged,
+  });
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-2 text-sm">
+        <input
+          type="number"
+          value={reps}
+          onChange={(e) => setReps(e.target.value)}
+          className="w-16 bg-graphite-deep border border-steel/50 focus:border-brass focus:outline-none rounded px-2 py-1"
+        />
+        <span className="text-steel">reps ×</span>
+        <input
+          type="number"
+          value={weight}
+          onChange={(e) => setWeight(e.target.value)}
+          className="w-16 bg-graphite-deep border border-steel/50 focus:border-brass focus:outline-none rounded px-2 py-1"
+        />
+        <span className="text-steel">kg</span>
+        <button onClick={() => updateMutation.mutate()} className="text-brass hover:underline ml-2">
+          Save
+        </button>
+        <button onClick={() => setEditing(false)} className="text-steel hover:underline">
+          Cancel
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center justify-between text-sm text-steel">
+      <span>
+        Set {index + 1}: {set.reps} reps × {set.weight}kg
+      </span>
+      <span className="flex gap-3">
+        <button onClick={() => setEditing(true)} className="hover:text-brass transition-colors">
+          Edit
+        </button>
+        <button onClick={() => deleteMutation.mutate()} className="hover:text-brick transition-colors">
+          Delete
+        </button>
+      </span>
+    </div>
+  );
+}
+
+interface SectionProps {
+  sessionId: number;
+  workoutExercise: WorkoutExerciseDetail;
+  onChanged: () => void;
+}
+
+function ExerciseSection({ sessionId, workoutExercise, onChanged }: SectionProps) {
   const [reps, setReps] = useState("");
   const [weight, setWeight] = useState("");
 
-  const mutation = useMutation({
+  const addSetMutation = useMutation({
     mutationFn: () => addSetToWorkoutExercise(workoutExercise.id, Number(reps), Number(weight)),
     onSuccess: () => {
       setReps("");
       setWeight("");
-      onSetLogged();
+      onChanged();
     },
+  });
+
+  const deleteExerciseMutation = useMutation({
+    mutationFn: () => deleteExerciseFromSession(sessionId, workoutExercise.id),
+    onSuccess: onChanged,
   });
 
   return (
     <div className="border-t border-steel/20 pt-5 mt-5">
-      <p className="font-display text-base font-medium mb-3">{workoutExercise.exercise.name}</p>
+      <div className="flex justify-between items-center mb-3">
+        <p className="font-display text-base font-medium">{workoutExercise.exercise.name}</p>
+        <button
+          onClick={() => {
+            if (window.confirm(`Remove ${workoutExercise.exercise.name} from this workout?`)) {
+              deleteExerciseMutation.mutate();
+            }
+          }}
+          className="text-xs text-steel hover:text-brick transition-colors"
+        >
+          Remove exercise
+        </button>
+      </div>
 
       {workoutExercise.sets.length > 0 && (
-        <div className="mb-3 space-y-1">
+        <div className="mb-3 space-y-1.5">
           {workoutExercise.sets.map((s, i) => (
-            <p key={s.id} className="text-sm text-steel">
-              Set {i + 1}: {s.reps} reps × {s.weight}kg
-            </p>
+            <SetRow
+              key={s.id}
+              workoutExerciseId={workoutExercise.id}
+              set={s}
+              index={i}
+              onChanged={onChanged}
+            />
           ))}
         </div>
       )}
@@ -60,8 +155,8 @@ function ExerciseSection({ workoutExercise, onSetLogged }: SectionProps) {
           className="w-24 bg-graphite-deep text-chalk border border-steel/50 focus:border-brass focus:outline-none transition-colors rounded-lg px-3 py-2 text-sm"
         />
         <button
-          onClick={() => mutation.mutate()}
-          disabled={!reps || !weight || mutation.isPending}
+          onClick={() => addSetMutation.mutate()}
+          disabled={!reps || !weight || addSetMutation.isPending}
           className="bg-brass hover:bg-brass/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-graphite text-sm font-medium px-4 rounded-lg"
         >
           Log set
@@ -86,10 +181,10 @@ function LogWorkoutPage() {
 
   const addExerciseMutation = useMutation({
     mutationFn: (exerciseId: number) => addExerciseToSession(id, exerciseId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["workout-session", id] }),
+    onSuccess: () => refetchSession(),
   });
 
-  const deleteMutation = useMutation({
+  const deleteSessionMutation = useMutation({
     mutationFn: () => deleteWorkoutSession(id),
     onSuccess: () => navigate("/"),
   });
@@ -102,12 +197,10 @@ function LogWorkoutPage() {
     const hasExercises = (sessionQuery.data?.workout_exercises.length ?? 0) > 0;
 
     if (hasExercises) {
-      if (window.confirm("Finish this workout?")) {
-        navigate("/");
-      }
+      navigate("/");
     } else {
       if (window.confirm("You haven't logged anything yet. Discard this workout?")) {
-        deleteMutation.mutate();
+        deleteSessionMutation.mutate();
       }
     }
   }
@@ -142,14 +235,14 @@ function LogWorkoutPage() {
         )}
 
         {session.workout_exercises.map((we) => (
-          <ExerciseSection key={we.id} workoutExercise={we} onSetLogged={refetchSession} />
+          <ExerciseSection key={we.id} sessionId={id} workoutExercise={we} onChanged={refetchSession} />
         ))}
 
         <button
           onClick={handleFinish}
-          className="mt-8 text-sm text-steel hover:text-brass transition-colors"
+          className="mt-8 text-sm text-steel hover:text-brass transition-colors cursor-pointer"
         >
-          Finish workout
+          {session.workout_exercises.length > 0 ? "Back to calendar" : "Discard workout"}
         </button>
       </div>
     </div>
