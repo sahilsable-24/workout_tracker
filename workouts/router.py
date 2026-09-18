@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException,Depends,status
 from workouts.models import WorkoutSession,MuscleGroup,WorkoutExercise,Exercise,Set
-from workouts.schemas import WorkoutSessionCreate,WorkoutSessionOut,WorkoutExerciseCreate, WorkoutExerciseOut, SetCreate,SetOut,WorkoutExerciseDetailOut,WorkoutSessionDetailOut,ExerciseOut, MuscleGroupOut
+from workouts.schemas import WorkoutSessionCreate,WorkoutSessionOut,WorkoutExerciseCreate, WorkoutExerciseOut, SetCreate,SetOut,WorkoutExerciseDetailOut,WorkoutSessionDetailOut,ExerciseOut, MuscleGroupOut,SetUpdate
 from auth.jwt import get_current_user
 from database import get_db
 from auth.models import User
@@ -165,6 +165,63 @@ def delete_set(
         raise HTTPException(status_code=404, detail="Set not found")
 
     db.delete(set_obj)
+    db.commit()
+
+# Router to edit a single set
+@router.patch("/workout-exercises/{workout_exercise_id}/sets/{set_id}", response_model=SetOut)
+def update_set(
+    workout_exercise_id: int,
+    set_id: int,
+    set_in: SetUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    set_obj = (
+        db.query(Set)
+        .join(WorkoutExercise, Set.workout_exercise_id == WorkoutExercise.id)
+        .join(WorkoutSession, WorkoutExercise.workout_session_id == WorkoutSession.id)
+        .filter(
+            Set.id == set_id,
+            Set.workout_exercise_id == workout_exercise_id,
+            WorkoutSession.user_id == current_user.id
+        )
+        .first()
+    )
+
+    if not set_obj:
+        raise HTTPException(status_code=404, detail="Set not found")
+
+    set_obj.reps = set_in.reps
+    set_obj.weight = set_in.weight
+
+    db.commit()
+    db.refresh(set_obj)
+
+    return set_obj
+
+# Router to delete an exercise (and its sets, via cascade) from a session
+@router.delete("/{session_id}/exercises/{workout_exercise_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_exercise_from_session(
+    session_id: int,
+    workout_exercise_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    workout_exercise = (
+        db.query(WorkoutExercise)
+        .join(WorkoutSession, WorkoutExercise.workout_session_id == WorkoutSession.id)
+        .filter(
+            WorkoutExercise.id == workout_exercise_id,
+            WorkoutExercise.workout_session_id == session_id,
+            WorkoutSession.user_id == current_user.id
+        )
+        .first()
+    )
+
+    if not workout_exercise:
+        raise HTTPException(status_code=404, detail="Exercise not found")
+
+    db.delete(workout_exercise)
     db.commit()
 
 

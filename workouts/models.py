@@ -47,7 +47,7 @@ class WorkoutExercise(Base):
     exercise_id: Mapped[int] = mapped_column(ForeignKey("exercises.id"))
 
     exercise: Mapped["Exercise"] = relationship()
-    sets: Mapped[list["Set"]] = relationship(back_populates="workout_exercise")
+    sets: Mapped[list["Set"]] = relationship(back_populates="workout_exercise",cascade="all, delete-orphan")
     workout_session: Mapped["WorkoutSession"] = relationship(back_populates="workout_exercises")
 
 class Set(Base):

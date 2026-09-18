@@ -52,3 +52,7 @@ class WorkoutSessionDetailOut(BaseModel):
     muscle_groups: list[MuscleGroupOut]
     workout_exercises: list[WorkoutExerciseDetailOut]
     model_config = ConfigDict(from_attributes=True)
+
+class SetUpdate(BaseModel):
+    reps: int
+    weight: Decimal
