@@ -1,43 +1,43 @@
 import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate, useParams } from "react-router-dom";
 import {
-  getMuscleGroups,
   getExercises,
-  createWorkoutSession,
+  getWorkoutSession,
+  deleteWorkoutSession,
   addExerciseToSession,
   addSetToWorkoutExercise,
+  type WorkoutExerciseDetail,
 } from "../api/workouts";
 import ExerciseCombobox from "../components/ExerciseCombobox";
 import Header from "../components/Header";
 
-interface SessionExercise {
-  workoutExerciseId: number;
-  exerciseName: string;
+interface SectionProps {
+  workoutExercise: WorkoutExerciseDetail;
+  onSetLogged: () => void;
 }
 
-function ExerciseSection({ workoutExerciseId, exerciseName }: SessionExercise) {
+function ExerciseSection({ workoutExercise, onSetLogged }: SectionProps) {
   const [reps, setReps] = useState("");
   const [weight, setWeight] = useState("");
-  const [loggedSets, setLoggedSets] = useState<{ reps: number; weight: string }[]>([]);
 
   const mutation = useMutation({
-    mutationFn: () => addSetToWorkoutExercise(workoutExerciseId, Number(reps), Number(weight)),
-    onSuccess: (data) => {
-      setLoggedSets((prev) => [...prev, { reps: data.reps, weight: data.weight }]);
+    mutationFn: () => addSetToWorkoutExercise(workoutExercise.id, Number(reps), Number(weight)),
+    onSuccess: () => {
       setReps("");
       setWeight("");
+      onSetLogged();
     },
   });
 
   return (
     <div className="border-t border-steel/20 pt-5 mt-5">
-      <p className="font-display text-base font-medium mb-3">{exerciseName}</p>
+      <p className="font-display text-base font-medium mb-3">{workoutExercise.exercise.name}</p>
 
-      {loggedSets.length > 0 && (
+      {workoutExercise.sets.length > 0 && (
         <div className="mb-3 space-y-1">
-          {loggedSets.map((s, i) => (
-            <p key={i} className="text-sm text-steel">
+          {workoutExercise.sets.map((s, i) => (
+            <p key={s.id} className="text-sm text-steel">
               Set {i + 1}: {s.reps} reps × {s.weight}kg
             </p>
           ))}
@@ -72,103 +72,85 @@ function ExerciseSection({ workoutExerciseId, exerciseName }: SessionExercise) {
 }
 
 function LogWorkoutPage() {
+  const { sessionId } = useParams();
+  const id = Number(sessionId);
   const navigate = useNavigate();
-  const [selectedMuscleGroupIds, setSelectedMuscleGroupIds] = useState<number[]>([]);
-  const [sessionId, setSessionId] = useState<number | null>(null);
-  const [sessionExercises, setSessionExercises] = useState<SessionExercise[]>([]);
+  const queryClient = useQueryClient();
 
-  const muscleGroupsQuery = useQuery({ queryKey: ["muscle-groups"], queryFn: getMuscleGroups });
+  const sessionQuery = useQuery({
+    queryKey: ["workout-session", id],
+    queryFn: () => getWorkoutSession(id),
+  });
+
   const exercisesQuery = useQuery({ queryKey: ["exercises"], queryFn: getExercises });
 
-  const createSessionMutation = useMutation({
-    mutationFn: () =>
-      createWorkoutSession({
-        workout_date: new Date().toISOString().split("T")[0],
-        muscle_group_ids: selectedMuscleGroupIds,
-      }),
-    onSuccess: (data) => setSessionId(data.id),
-  });
-
   const addExerciseMutation = useMutation({
-    mutationFn: (exerciseId: number) => addExerciseToSession(sessionId!, exerciseId),
-    onSuccess: (data, exerciseId) => {
-      const exercise = exercisesQuery.data?.find((ex) => ex.id === exerciseId);
-      if (exercise) {
-        setSessionExercises((prev) => [
-          ...prev,
-          { workoutExerciseId: data.id, exerciseName: exercise.name },
-        ]);
-      }
-    },
+    mutationFn: (exerciseId: number) => addExerciseToSession(id, exerciseId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["workout-session", id] }),
   });
 
-  function toggleMuscleGroup(id: number) {
-    setSelectedMuscleGroupIds((prev) =>
-      prev.includes(id) ? prev.filter((mgId) => mgId !== id) : [...prev, id]
-    );
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteWorkoutSession(id),
+    onSuccess: () => navigate("/"),
+  });
+
+  function refetchSession() {
+    queryClient.invalidateQueries({ queryKey: ["workout-session", id] });
   }
+
+  function handleFinish() {
+    const hasExercises = (sessionQuery.data?.workout_exercises.length ?? 0) > 0;
+
+    if (hasExercises) {
+      if (window.confirm("Finish this workout?")) {
+        navigate("/");
+      }
+    } else {
+      if (window.confirm("You haven't logged anything yet. Discard this workout?")) {
+        deleteMutation.mutate();
+      }
+    }
+  }
+
+  if (sessionQuery.isLoading) {
+    return <p className="text-steel text-sm p-8">Loading...</p>;
+  }
+
+  if (sessionQuery.isError || !sessionQuery.data) {
+    return <p className="text-brick text-sm p-8">Couldn't load this workout.</p>;
+  }
+
+  const session = sessionQuery.data;
 
   return (
     <div className="min-h-screen bg-graphite text-chalk">
       <div className="max-w-3xl mx-auto p-6 sm:p-10">
         <Header />
 
-        {!sessionId && (
-          <div>
-            <p className="text-xs text-steel mb-3">What are you training today?</p>
-            <div className="flex flex-wrap gap-2 mb-6">
-              {muscleGroupsQuery.data?.map((mg) => (
-                <button
-                  key={mg.id}
-                  onClick={() => toggleMuscleGroup(mg.id)}
-                  className={`text-sm px-4 py-2 rounded-lg border transition-colors ${
-                    selectedMuscleGroupIds.includes(mg.id)
-                      ? "bg-brass text-graphite border-brass"
-                      : "border-steel/50 text-chalk hover:border-steel"
-                  }`}
-                >
-                  {mg.name}
-                </button>
-              ))}
-            </div>
+        <p className="text-xs text-steel mb-1">
+          {session.muscle_groups.map((mg) => mg.name).join(", ")}
+        </p>
+        <p className="font-display text-xl font-medium mb-6">{session.workout_date}</p>
 
-            <button
-              onClick={() => createSessionMutation.mutate()}
-              disabled={selectedMuscleGroupIds.length === 0 || createSessionMutation.isPending}
-              className="bg-brass hover:bg-brass/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-graphite font-medium py-3 px-6 rounded-lg"
-            >
-              Start workout
-            </button>
-          </div>
+        <p className="text-xs text-steel mb-3">Add an exercise</p>
+        {exercisesQuery.data && (
+          <ExerciseCombobox
+            key={session.workout_exercises.length}
+            exercises={exercisesQuery.data}
+            onSelect={(ex) => addExerciseMutation.mutate(ex.id)}
+          />
         )}
 
-        {sessionId && (
-          <div>
-            <p className="text-xs text-steel mb-3">Add an exercise</p>
-            {exercisesQuery.data && (
-              <ExerciseCombobox
-                key={sessionExercises.length}
-                exercises={exercisesQuery.data}
-                onSelect={(ex) => addExerciseMutation.mutate(ex.id)}
-              />
-            )}
+        {session.workout_exercises.map((we) => (
+          <ExerciseSection key={we.id} workoutExercise={we} onSetLogged={refetchSession} />
+        ))}
 
-            {sessionExercises.map((se) => (
-              <ExerciseSection
-                key={se.workoutExerciseId}
-                workoutExerciseId={se.workoutExerciseId}
-                exerciseName={se.exerciseName}
-              />
-            ))}
-
-            <button
-              onClick={() => navigate("/")}
-              className="mt-8 text-sm text-steel hover:text-brass transition-colors"
-            >
-              Finish workout
-            </button>
-          </div>
-        )}
+        <button
+          onClick={handleFinish}
+          className="mt-8 text-sm text-steel hover:text-brass transition-colors"
+        >
+          Finish workout
+        </button>
       </div>
     </div>
   );

@@ -1,33 +1,21 @@
 import { apiFetch } from "./client";
 
-
-interface MuscleGroup {
+export interface MuscleGroup {
   id: number;
   name: string;
 }
 
-interface WorkoutSession {
-  id: number;
-  workout_date: string;
-  muscle_groups: MuscleGroup[];
+export function getMuscleGroups(): Promise<MuscleGroup[]> {
+  return apiFetch<MuscleGroup[]>("/workouts/muscle-groups");
 }
 
-interface Exercise {
+export interface Exercise {
   id: number;
   name: string;
-}
-
-export function getWorkoutSessions(): Promise<WorkoutSession[]> {
-  return apiFetch<WorkoutSession[]>("/workouts/");
 }
 
 export function getExercises(): Promise<Exercise[]> {
   return apiFetch<Exercise[]>("/workouts/exercises");
-}
-
-
-export function getMuscleGroups(): Promise<MuscleGroup[]> {
-  return apiFetch<MuscleGroup[]>("/workouts/muscle-groups"); // 
 }
 
 interface CreateSessionPayload {
@@ -35,7 +23,7 @@ interface CreateSessionPayload {
   muscle_group_ids: number[];
 }
 
-interface Session {
+export interface Session {
   id: number;
   workout_date: string;
   muscle_groups: MuscleGroup[];
@@ -48,26 +36,46 @@ export function createWorkoutSession(payload: CreateSessionPayload): Promise<Ses
   });
 }
 
-interface WorkoutExercise {
-  id: number;
-  exercise_id: number;
+export function getWorkoutSessions(): Promise<Session[]> {
+  return apiFetch<Session[]>("/workouts/");
 }
 
-export function addExerciseToSession(sessionId: number, exerciseId: number): Promise<WorkoutExercise> {
-  return apiFetch<WorkoutExercise>(`/workouts/${sessionId}/exercises`, {
-    method: "POST",
-    body: JSON.stringify({ exercise_id: exerciseId }),
-  });
-}
-
-interface Set {
+export interface SetOut {
   id: number;
   reps: number;
   weight: string;
 }
 
-export function addSetToWorkoutExercise(workoutExerciseId: number, reps: number, weight: number): Promise<Set> {
-  return apiFetch<Set>(`/workouts/workout-exercises/${workoutExerciseId}/sets`, {
+export interface WorkoutExerciseDetail {
+  id: number;
+  exercise: Exercise;
+  sets: SetOut[];
+}
+
+export interface SessionDetail {
+  id: number;
+  workout_date: string;
+  muscle_groups: MuscleGroup[];
+  workout_exercises: WorkoutExerciseDetail[];
+}
+
+export function getWorkoutSession(sessionId: number): Promise<SessionDetail> {
+  return apiFetch<SessionDetail>(`/workouts/${sessionId}`);
+}
+
+export function deleteWorkoutSession(sessionId: number): Promise<void> {
+  return apiFetch<void>(`/workouts/${sessionId}`, { method: "DELETE" });
+}
+
+export function addExerciseToSession(sessionId: number, exerciseId: number): Promise<WorkoutExerciseDetail> {
+  return apiFetch<WorkoutExerciseDetail>(`/workouts/${sessionId}/exercises`, {
+    method: "POST",
+    body: JSON.stringify({ exercise_id: exerciseId }),
+  });
+}
+
+export function addSetToWorkoutExercise(workoutExerciseId: number, reps: number, weight: number): Promise<SetOut> {
+  return apiFetch<SetOut>(`/workouts/workout-exercises/${workoutExerciseId}/sets`, {
     method: "POST",
     body: JSON.stringify({ reps, weight }),
   });
