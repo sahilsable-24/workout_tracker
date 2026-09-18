@@ -8,7 +8,7 @@ from typing import Optional
 workout_sessions_muscle_groups = Table(
     "workout_sessions_muscle_groups",
     Base.metadata,
-    Column("workout_session_id", ForeignKey("workout_sessions.id"), primary_key=True),
+    Column("workout_session_id", ForeignKey("workout_sessions.id", ondelete="CASCADE"), primary_key=True),
     Column("muscle_group_id", ForeignKey("muscle_groups.id"), primary_key=True)
 )
 

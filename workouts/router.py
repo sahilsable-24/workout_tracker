@@ -61,6 +61,22 @@ def list_muscle_groups(
     return db.query(MuscleGroup).all()
 
 
+@router.delete("/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_workout_session(
+    session_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    session = db.query(WorkoutSession).filter(
+        WorkoutSession.id == session_id,
+        WorkoutSession.user_id == current_user.id
+    ).first()
+
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    db.delete(session)
+    db.commit()
 
 #Router to post the exercises
 @router.post("/{session_id}/exercises",response_model=WorkoutExerciseOut,status_code=status.HTTP_201_CREATED)
