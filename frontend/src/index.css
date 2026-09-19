@@ -1,4 +1,5 @@
    @import "tailwindcss";
+   @plugin "@tailwindcss/typography";
 
    @theme {
      --color-graphite: #1C1B1A;

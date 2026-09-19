@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 function Header() {
   const navigate = useNavigate();
@@ -10,7 +10,9 @@ function Header() {
 
   return (
     <div className="flex justify-between items-center mb-10">
-      <p className="font-display text-lg font-medium">Workout tracker</p>
+      <Link to="/" className="font-display text-lg font-medium hover:text-brass transition-colors">
+        Workout tracker
+      </Link>      
       <button
         onClick={handleLogout}
         className="text-xs text-steel hover:text-brass transition-colors"

@@ -5,6 +5,7 @@ import CalendarPage from "./pages/CalendarPage";
 import MuscleSelectPage from "./pages/MuscleSelectpage";
 import LogWorkoutPage from "./pages/LogWorkoutPage";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AssistantPage from "./pages/AssistantPage";
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Route path="/" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
         <Route path="/log/new/:date" element={<ProtectedRoute><MuscleSelectPage /></ProtectedRoute>} />
         <Route path="/log/:sessionId" element={<ProtectedRoute><LogWorkoutPage /></ProtectedRoute>} />
+        <Route path="/assistant" element={<ProtectedRoute><AssistantPage /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   );

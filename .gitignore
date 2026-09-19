@@ -11,3 +11,4 @@ wheels/
 
 # Enivornment Variables
 .env
+DECISIONS.md

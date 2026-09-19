@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { getCalendarMonth } from "../api/progress";
 import { getProgressSummary } from "../api/progress";
 import Header from "../components/Header";
@@ -92,75 +92,91 @@ function CalendarPage() {
       <div className="max-w-3xl mx-auto p-6 sm:p-10">
         <Header />
 
-        {summaryQuery.data && (
-          <div className="flex gap-10 mb-10">
-            <div>
-              <p className="text-xs text-steel mb-1">This week</p>
-              <p className="font-display text-3xl font-medium">
-                {summaryQuery.data.workout_last_7_days}
-              </p>
-              <p className="text-xs text-steel">workouts</p>
-            </div>
-            <div>
-              <p className="text-xs text-steel mb-1">Last 30 days</p>
-              <p className="font-display text-3xl font-medium">
-                {summaryQuery.data.workout_last_30_days}
-              </p>
-              <p className="text-xs text-steel">workouts</p>
-            </div>
+        <div className="border-b border-steel/10 mb-8" />
+
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
+          <div className="flex gap-10">
+            {summaryQuery.data && (
+              <>
+                <div>
+                  <p className="text-[11px] tracking-wide text-steel mb-1">THIS WEEK</p>
+                  <p className="font-display text-3xl font-semibold leading-none">
+                    {summaryQuery.data.workout_last_7_days}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[11px] tracking-wide text-steel mb-1">LAST 30 DAYS</p>
+                  <p className="font-display text-3xl font-semibold leading-none">
+                    {summaryQuery.data.workout_last_30_days}
+                  </p>
+                </div>
+              </>
+            )}
           </div>
-        )}
 
-        <div className="flex items-center justify-between mb-6">
-          <button onClick={goToPreviousMonth} className="text-steel hover:text-brass transition-colors text-sm px-2">
-            ←
-          </button>
-          <p className="font-display text-lg font-medium">
-            {MONTH_NAMES[month - 1]} {year}
-          </p>
-          <button onClick={goToNextMonth} className="text-steel hover:text-brass transition-colors text-sm px-2">
-            →
-          </button>
+          <Link
+            to="/assistant"
+            className="inline-flex items-center gap-2 bg-graphite-deep border border-steel/30 hover:border-brass/50 transition-colors rounded-full px-4 py-2 text-sm w-fit"
+          >
+            <span className="text-brass">✦</span>
+            <span>Ask the assistant</span>
+          </Link>
         </div>
 
-        <div className="grid grid-cols-7 gap-1 mb-2">
-          {WEEKDAY_LABELS.map((label) => (
-            <p key={label} className="text-center text-xs text-steel">{label}</p>
-          ))}
-        </div>
+        <div className="bg-graphite-deep rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-5">
+            <button onClick={goToPreviousMonth} className="text-steel hover:text-brass transition-colors text-sm px-2">
+              ←
+            </button>
+            <p className="font-display text-base font-medium">
+              {MONTH_NAMES[month - 1]} {year}
+            </p>
+            <button onClick={goToNextMonth} className="text-steel hover:text-brass transition-colors text-sm px-2">
+              →
+            </button>
+          </div>
 
-        <div className="grid grid-cols-7 gap-1">
-          {cells.map((day, i) => {
-            if (day === null) return <div key={`blank-${i}`} />;
+          <div className="grid grid-cols-7 gap-1.5 mb-2">
+            {WEEKDAY_LABELS.map((label) => (
+              <p key={label} className="text-center text-[10px] tracking-wide text-steel">
+                {label.toUpperCase()}
+              </p>
+            ))}
+          </div>
 
-            const hasSession = sessionsByDay.has(day);
-            const isToday = year === todayYear && month === todayMonth && day === todayDate;
-            const future = isFutureDay(day);
-            const isClickable = hasSession || !future;
+          <div className="grid grid-cols-7 gap-1.5">
+            {cells.map((day, i) => {
+              if (day === null) return <div key={`blank-${i}`} />;
 
-            return (
-              <button
-                key={day}
-                onClick={() => handleDayClick(day)}
-                disabled={!isClickable}
-                className={`aspect-square rounded-lg text-sm flex items-center justify-center transition-colors ${
-                  hasSession
-                    ? "bg-brass text-graphite font-medium cursor-pointer"
-                    : isToday
-                    ? "border border-brass text-brass hover:bg-brass/10 cursor-pointer"
-                    : future
-                    ? "text-steel/30 cursor-default"
-                    : "text-steel hover:bg-graphite-deep cursor-pointer"
-                }`}
-              >
-                {day}
-              </button>
-            );
-          })}
+              const hasSession = sessionsByDay.has(day);
+              const isToday = year === todayYear && month === todayMonth && day === todayDate;
+              const future = isFutureDay(day);
+              const isClickable = hasSession || !future;
+
+              return (
+                <button
+                  key={day}
+                  onClick={() => handleDayClick(day)}
+                  disabled={!isClickable}
+                  className={`aspect-square rounded-lg text-sm flex items-center justify-center transition-colors ${
+                    hasSession
+                      ? "bg-brass text-graphite font-semibold cursor-pointer"
+                      : isToday
+                      ? "border border-brass text-brass font-semibold hover:bg-brass/10 cursor-pointer"
+                      : future
+                      ? "bg-graphite/40 text-steel/30 cursor-default"
+                      : "bg-graphite/60 text-steel hover:bg-graphite cursor-pointer"
+                  }`}
+                >
+                  {day}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {calendarQuery.data && (
-          <p className="text-xs text-steel mt-6">
+          <p className="text-xs text-steel mt-5 text-center">
             {calendarQuery.data.workout_count} workout{calendarQuery.data.workout_count !== 1 ? "s" : ""} this month
           </p>
         )}

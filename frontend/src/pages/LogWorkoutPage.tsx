@@ -43,7 +43,7 @@ function SetRow({ workoutExerciseId, set, index, onChanged }: SetRowProps) {
 
   if (editing) {
     return (
-      <div className="flex items-center gap-2 text-sm">
+      <div className="flex items-center gap-2 bg-graphite rounded-lg px-3 py-2.5 text-sm">
         <input
           type="number"
           value={reps}
@@ -58,10 +58,10 @@ function SetRow({ workoutExerciseId, set, index, onChanged }: SetRowProps) {
           className="w-16 bg-graphite-deep border border-steel/50 focus:border-brass focus:outline-none rounded px-2 py-1"
         />
         <span className="text-steel">kg</span>
-        <button onClick={() => updateMutation.mutate()} className="text-brass hover:underline ml-2">
+        <button onClick={() => updateMutation.mutate()} className="text-brass hover:underline ml-auto cursor-pointer">
           Save
         </button>
-        <button onClick={() => setEditing(false)} className="text-steel hover:underline">
+        <button onClick={() => setEditing(false)} className="text-steel hover:underline cursor-pointer">
           Cancel
         </button>
       </div>
@@ -69,15 +69,16 @@ function SetRow({ workoutExerciseId, set, index, onChanged }: SetRowProps) {
   }
 
   return (
-    <div className="flex items-center justify-between text-sm text-steel">
-      <span>
-        Set {index + 1}: {set.reps} reps × {set.weight}kg
+    <div className="flex items-center justify-between bg-graphite rounded-lg px-3 py-2.5 text-sm">
+      <span className="text-chalk/80">
+        <span className="text-steel">Set {index + 1}</span>{"  "}
+        {set.reps} reps × {set.weight}kg
       </span>
-      <span className="flex gap-3">
-        <button onClick={() => setEditing(true)} className="hover:text-brass transition-colors">
+      <span className="flex gap-3 text-xs">
+        <button onClick={() => setEditing(true)} className="text-steel hover:text-brass transition-colors cursor-pointer">
           Edit
         </button>
-        <button onClick={() => deleteMutation.mutate()} className="hover:text-brick transition-colors">
+        <button onClick={() => deleteMutation.mutate()} className="text-brick/70 hover:text-brick transition-colors cursor-pointer">
           Delete
         </button>
       </span>
@@ -110,8 +111,8 @@ function ExerciseSection({ sessionId, workoutExercise, onChanged }: SectionProps
   });
 
   return (
-    <div className="border-t border-steel/20 pt-5 mt-5">
-      <div className="flex justify-between items-center mb-3">
+    <div className="bg-graphite-deep rounded-2xl p-5 mb-4">
+      <div className="flex justify-between items-center mb-4">
         <p className="font-display text-base font-medium">{workoutExercise.exercise.name}</p>
         <button
           onClick={() => {
@@ -119,14 +120,14 @@ function ExerciseSection({ sessionId, workoutExercise, onChanged }: SectionProps
               deleteExerciseMutation.mutate();
             }
           }}
-          className="text-xs text-steel hover:text-brick transition-colors"
+          className="text-xs text-steel hover:text-brick transition-colors cursor-pointer"
         >
-          Remove exercise
+          Remove
         </button>
       </div>
 
       {workoutExercise.sets.length > 0 && (
-        <div className="mb-3 space-y-1.5">
+        <div className="flex flex-col gap-1 mb-4">
           {workoutExercise.sets.map((s, i) => (
             <SetRow
               key={s.id}
@@ -145,19 +146,19 @@ function ExerciseSection({ sessionId, workoutExercise, onChanged }: SectionProps
           placeholder="Reps"
           value={reps}
           onChange={(e) => setReps(e.target.value)}
-          className="w-24 bg-graphite-deep text-chalk border border-steel/50 focus:border-brass focus:outline-none transition-colors rounded-lg px-3 py-2 text-sm"
+          className="w-17.5 bg-graphite text-chalk border border-steel/50 focus:border-brass focus:outline-none transition-colors rounded-lg px-3 py-2 text-sm"
         />
         <input
           type="number"
           placeholder="Weight"
           value={weight}
           onChange={(e) => setWeight(e.target.value)}
-          className="w-24 bg-graphite-deep text-chalk border border-steel/50 focus:border-brass focus:outline-none transition-colors rounded-lg px-3 py-2 text-sm"
+          className="w-20 bg-graphite text-chalk border border-steel/50 focus:border-brass focus:outline-none transition-colors rounded-lg px-3 py-2 text-sm"
         />
         <button
           onClick={() => addSetMutation.mutate()}
           disabled={!reps || !weight || addSetMutation.isPending}
-          className="bg-brass hover:bg-brass/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-graphite text-sm font-medium px-4 rounded-lg"
+          className="flex-1 bg-brass hover:bg-brass/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-graphite text-sm font-medium rounded-lg cursor-pointer"
         >
           Log set
         </button>
@@ -217,22 +218,26 @@ function LogWorkoutPage() {
 
   return (
     <div className="min-h-screen bg-graphite text-chalk">
-      <div className="max-w-3xl mx-auto p-6 sm:p-10">
+      <div className="max-w-2xl mx-auto p-6 sm:p-10">
         <Header />
+
+        <div className="border-b border-steel/10 mb-8" />
 
         <p className="text-xs text-steel mb-1">
           {session.muscle_groups.map((mg) => mg.name).join(", ")}
         </p>
-        <p className="font-display text-xl font-medium mb-6">{session.workout_date}</p>
+        <p className="font-display text-xl font-medium mb-8">{session.workout_date}</p>
 
         <p className="text-xs text-steel mb-3">Add an exercise</p>
-        {exercisesQuery.data && (
-          <ExerciseCombobox
-            key={session.workout_exercises.length}
-            exercises={exercisesQuery.data}
-            onSelect={(ex) => addExerciseMutation.mutate(ex.id)}
-          />
-        )}
+        <div className="mb-6">
+          {exercisesQuery.data && (
+            <ExerciseCombobox
+              key={session.workout_exercises.length}
+              exercises={exercisesQuery.data}
+              onSelect={(ex) => addExerciseMutation.mutate(ex.id)}
+            />
+          )}
+        </div>
 
         {session.workout_exercises.map((we) => (
           <ExerciseSection key={we.id} sessionId={id} workoutExercise={we} onChanged={refetchSession} />
@@ -240,7 +245,7 @@ function LogWorkoutPage() {
 
         <button
           onClick={handleFinish}
-          className="mt-8 text-sm text-steel hover:text-brass transition-colors cursor-pointer"
+          className="mt-4 text-sm text-steel hover:text-brass transition-colors cursor-pointer"
         >
           {session.workout_exercises.length > 0 ? "Back to calendar" : "Discard workout"}
         </button>
