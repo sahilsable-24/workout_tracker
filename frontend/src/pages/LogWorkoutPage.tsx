@@ -15,6 +15,7 @@ import {
 } from "../api/workouts";
 import ExerciseCombobox from "../components/ExerciseCombobox";
 import Header from "../components/Header";
+import { getSuggestion } from "../api/progress";
 
 interface SetRowProps {
   workoutExerciseId: number;
@@ -92,9 +93,23 @@ interface SectionProps {
   onChanged: () => void;
 }
 
+const SUGGESTION_TEXT: Record<string,string> = {
+  increase_reps: "Try adding a rep",
+  increase_weights: "Try a small weight increase",
+  repeat: "Try repeating last session's numbers"
+}
+
 function ExerciseSection({ sessionId, workoutExercise, onChanged }: SectionProps) {
   const [reps, setReps] = useState("");
   const [weight, setWeight] = useState("");
+
+  const suggestionQuery = useQuery({
+    queryKey: ["suggestion", sessionId, workoutExercise.exercise.id],
+    queryFn: () => getSuggestion(sessionId, workoutExercise.exercise.id)
+  })
+
+  const suggestionText = suggestionQuery.data ? SUGGESTION_TEXT[suggestionQuery.data.suggestion] : undefined;
+
 
   const addSetMutation = useMutation({
     mutationFn: () => addSetToWorkoutExercise(workoutExercise.id, Number(reps), Number(weight)),
@@ -125,6 +140,10 @@ function ExerciseSection({ sessionId, workoutExercise, onChanged }: SectionProps
           Remove
         </button>
       </div>
+
+      {suggestionText && (
+        <p className="text-xs text-brass mb-4">{suggestionText}</p>
+      )}
 
       {workoutExercise.sets.length > 0 && (
         <div className="flex flex-col gap-1 mb-4">

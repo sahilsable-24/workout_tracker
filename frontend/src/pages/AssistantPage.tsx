@@ -47,7 +47,7 @@ function AssistantPage() {
               }`}
             >
               {m.role === "assistant" ? (
-                <div className="prose prose-invert prose-sm max-w-none">
+                <div className="prose prose-invert prose-sm max-w-none overflow-x-auto">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
                 </div>
               ) : (

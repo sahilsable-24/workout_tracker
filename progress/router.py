@@ -85,8 +85,9 @@ def get_calendar_progress(
         return {"year":year, "monthly_counts": monthly_counts}
 
 
-@router.get("/suggestion/{exercise_id}")
+@router.get("/suggestion/{session_id}/{exercise_id}")
 def get_suggestion(
+    session_id: int,
     exercise_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -98,6 +99,7 @@ def get_suggestion(
         .filter(
             WorkoutSession.user_id == current_user.id,
             WorkoutExercise.exercise_id == exercise_id,
+            WorkoutSession.id != session_id
         )
         .order_by(WorkoutSession.workout_date.desc())
         .limit(2)
