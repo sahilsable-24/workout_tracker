@@ -40,31 +40,4 @@ def suggest_progression(
 
 
 
-
-
-
-    # All improved, low reps -> should suggest increasing reps
-print(suggest_progression(
-    previous_sets=[(10, Decimal("60")), (10, Decimal("60")), (9, Decimal("60"))],
-    current_sets=[(10, Decimal("60")), (10, Decimal("60")), (10, Decimal("60"))]
-))
-
-# All improved, reps already at 12 -> should suggest increasing weight
-print(suggest_progression(
-    previous_sets=[(12, Decimal("60")), (12, Decimal("60"))],
-    current_sets=[(12, Decimal("60")), (12, Decimal("60"))]
-))
-
-# Reps dropped on one set -> should suggest repeat
-print(suggest_progression(
-    previous_sets=[(10, Decimal("60")), (10, Decimal("60"))],
-    current_sets=[(10, Decimal("60")), (8, Decimal("60"))]
-))
-
-# Weight changed -> insufficient data
-print(suggest_progression(
-    previous_sets=[(10, Decimal("60"))],
-    current_sets=[(10, Decimal("55"))]
-))  
-
     

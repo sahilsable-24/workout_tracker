@@ -12,3 +12,4 @@ wheels/
 # Enivornment Variables
 .env
 DECISIONS.md
+.env.docker
