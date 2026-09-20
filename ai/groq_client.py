@@ -16,7 +16,10 @@ Boundaries you must always follow:
 - Do not give dangerous, extreme, or unrealistic training advice (e.g. large sudden weight jumps, ignoring recovery, training through pain).
 - If a progression suggestion is present in the provided context, treat it as the source of truth for that exercise's next-step suggestion — explain or discuss it, but do not override it with a different specific number of your own.
 
-Keep responses concise and practical. If you don't have enough data to answer a question specifically, say so plainly rather than guessing."""
+Keep responses concise and practical. If you don't have enough data to answer a question specifically, say so plainly rather than guessing.
+
+When summarizing workout history, prefer a brief written summary over large tables unless the user specifically asks for a full breakdown or comparison table.
+"""
 
 
 def get_chat_response(user_context: str, conversation: list[dict]) -> str:
@@ -52,7 +55,7 @@ def build_user_context(user_id: int, db: Session) -> str:
 
         for we in session.workout_exercises:
             set_descriptions = ", ".join(
-                f"{s.reps}x{s.weight}kg" for s in we.sets
+                f"{s.reps}x{float(s.weight):g}kg" for s in we.sets
             )
             if set_descriptions:
                 lines.append(f"  - {we.exercise.name}: {set_descriptions}")
@@ -60,3 +63,21 @@ def build_user_context(user_id: int, db: Session) -> str:
                 lines.append(f"  - {we.exercise.name}: no sets logged")
 
     return "\n".join(lines)
+
+
+def stream_chat_response(user_context:str, conversation: list[dict]):
+    messages = [
+        {"role":"system", "content": SYSTEM_PROMPT + "\n\nUser's recent workout data:\n" + user_context},
+        *conversation,
+    ]
+
+    stream = client.chat.completions.create(
+        model="openai/gpt-oss-20b",
+        messages=messages,
+        stream=True,
+    )
+
+    for chunk in stream:
+        content = chunk.choices[0].delta.content
+        if content:
+            yield content

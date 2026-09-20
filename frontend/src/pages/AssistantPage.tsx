@@ -1,9 +1,8 @@
 import { useState, type SubmitEvent } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { sendChatMessage, type ChatMessage } from "../api/ai";
-import Header from "../components/Header";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { streamChatMessage, type ChatMessage } from "../api/ai";
+import Header from "../components/Header";
 
 const GREETING: ChatMessage = {
   role: "assistant",
@@ -13,22 +12,38 @@ const GREETING: ChatMessage = {
 function AssistantPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([GREETING]);
   const [input, setInput] = useState("");
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamError, setStreamError] = useState(false);
 
-  const mutation = useMutation({
-    mutationFn: (nextMessages: ChatMessage[]) => sendChatMessage(nextMessages),
-    onSuccess: (data, nextMessages) => {
-      setMessages([...nextMessages, { role: "assistant", content: data.reply }]);
-    },
-  });
-
-  function handleSubmit(e: SubmitEvent) {
+  async function handleSubmit(e: SubmitEvent) {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || isStreaming) return;
 
-    const nextMessages = [...messages, { role: "user" as const, content: input }];
-    setMessages(nextMessages);
+    const userMessage: ChatMessage = { role: "user", content: input };
+    const nextMessages = [...messages, userMessage];
+
+    setMessages([...nextMessages, { role: "assistant", content: "" }]);
     setInput("");
-    mutation.mutate(nextMessages);
+    setIsStreaming(true);
+    setStreamError(false);
+
+    try {
+      await streamChatMessage(nextMessages, (chunk) => {
+        setMessages((current) => {
+          const updated = [...current];
+          const lastIndex = updated.length - 1;
+          updated[lastIndex] = {
+            ...updated[lastIndex],
+            content: updated[lastIndex].content + chunk,
+          };
+          return updated;
+        });
+      });
+    } catch {
+      setStreamError(true);
+    } finally {
+      setIsStreaming(false);
+    }
   }
 
   return (
@@ -48,21 +63,17 @@ function AssistantPage() {
             >
               {m.role === "assistant" ? (
                 <div className="prose prose-invert prose-sm max-w-none overflow-x-auto">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {m.content || (isStreaming && i === messages.length - 1 ? "..." : "")}
+                  </ReactMarkdown>
                 </div>
               ) : (
-                m.content 
+                m.content
               )}
             </div>
           ))}
 
-          {mutation.isPending && (
-            <div className="max-w-[80%] px-4 py-2.5 rounded-lg text-sm bg-graphite-deep text-steel">
-              Thinking...
-            </div>
-          )}
-
-          {mutation.isError && (
+          {streamError && (
             <p className="text-brick text-sm">Something went wrong. Try again.</p>
           )}
         </div>
@@ -77,7 +88,7 @@ function AssistantPage() {
           />
           <button
             type="submit"
-            disabled={mutation.isPending || !input.trim()}
+            disabled={isStreaming || !input.trim()}
             className="bg-brass hover:bg-brass/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-graphite font-medium px-5 rounded-lg"
           >
             Send
