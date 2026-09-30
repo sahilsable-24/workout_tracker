@@ -13,3 +13,6 @@ wheels/
 .env
 DECISIONS.md
 .env.docker
+
+
+scripts/
